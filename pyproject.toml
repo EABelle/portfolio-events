@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "portfolio-events"
+version = "0.1.0"
+description = "Turns filings and statements into verified, dated events"
+readme = "README.md"
+requires-python = ">=3.11"          # tomllib and the typing used here
+license = "MIT"
+authors = [{ name = "EABelle" }]
+keywords = ["edgar", "sec", "8-k", "fomc", "events", "rag"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Financial and Insurance Industry",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Office/Business :: Financial",
+]
+dependencies = [
+  "openai>=2.0",
+  "pydantic>=2.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/EABelle/portfolio-events"
+
+[tool.hatch.build.targets.wheel]
+packages = ["events"]
