@@ -95,13 +95,57 @@ because what is being tested is the pipeline's refusal to trust it.
 Runtime dependencies are `openai` and `pydantic`. The store is plain `sqlite3` from
 the standard library.
 
+## Fetching
+
+```python
+from datetime import date
+from events import EventStore, PoliteClient, ingest
+
+client = PoliteClient(user_agent="Jane Doe jane@example.com")
+
+with EventStore("events.db") as store:
+    report = ingest(store, client, ["AAPL", "KO"],
+                    start=date(2026, 10, 1), end=date(2026, 10, 31))
+
+print(report.found, report.skipped, report.events, report.failures)
+```
+
+Two sources, both chosen because they carry an **official publication date**: EDGAR
+8-Ks and the Federal Reserve's monetary policy press release feed. A source without a
+trustworthy date cannot be used here, however interesting its content — without one,
+`published_at` is a guess and the whole point of separating it from `ingested_at` is
+gone.
+
+### The access rules are structural, not advisory
+
+The SEC requires a User-Agent that says who you are and how to reach you, and caps
+requests at 10 per second. Breaking either gets your IP blocked, which is not a
+transient error. So:
+
+- a contact User-Agent is **required to construct the client**, and one that does not
+  look like a contact is refused before any request is made;
+- the rate limit is enforced by the client and defaults to **half** the published
+  ceiling;
+- only `sec.gov` and `federalreserve.gov` over HTTPS can be reached, so a URL arriving
+  from fetched content cannot redirect this anywhere else;
+- responses are size-capped.
+
+### Incremental and forgiving
+
+Sources already in the store are skipped *before* anything is fetched, so re-running
+costs nothing. One missing filing or one timeout never stops a run — every failure
+comes back in the `Report` instead.
+
+`primaryDocument` is treated as optional in the SEC's index: when it is absent the
+filing is read from its complete submission text file rather than dropped.
+
 ## Not here yet
 
-- **Fetching.** EDGAR 8-K and FOMC statement retrieval, with an identified User-Agent
-  and incremental ingestion. Today you hand `extract` the text yourself.
 - **Vector search.** Retrieval by ticker and date range answers "what happened to this
   name last week". Semantic search can be added when a question appears that this
   cannot answer — not before.
+- **A scheduler.** Deciding *when* to ingest, and for which names, belongs to whoever
+  owns the portfolio — not here.
 
 ## Related
 
